@@ -24,6 +24,6 @@ public SharedPlugin __pl_CSGO_PanoramaFix = {
 
 #if !defined REQUIRE_PLUGIN
 public void __pl_CSGO_PanoramaFix_SetNTVOptional() {
-	MarkNativeAsOptional("UseClientPanorama");
+	MarkNativeAsOptional("IsClientUsePanorama");
 }
 #endif
