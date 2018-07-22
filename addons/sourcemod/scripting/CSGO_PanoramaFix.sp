@@ -56,7 +56,7 @@ public void OnPluginStart() {
 
 	/***** endmatch_votenextmap Fix *****/
 	// You have to prehook it to avoid cs_gamerules deallocation, or you will cause the usage of dangling ServerClass instance.
-	HookEventEx("cs_win_panel_match", Event_cs_win_panel_match, EventHookMode_Pre);
+	HookEvent("cs_win_panel_match", Event_cs_win_panel_match);
 
 	SetCookieMenuItem(PrefMenu, 0, "[Panorama] More Info for Scoreboard");
 
@@ -124,16 +124,22 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 //----------------------------------------------------------------------------------------------------
 public void Event_cs_win_panel_match(Event event, const char[] name, bool dontBroadcast) {
 	if (FindConVar("mp_endmatch_votenextmap").BoolValue) return;
-	int ent = FindEntityByClassname(MAXPLAYERS, "cs_gamerules");
-	if (ent != -1) {
-		int VoteOptionArraySize = GetEntPropArraySize(ent, Prop_Send, "m_nEndMatchMapGroupVoteOptions");
-		int VoteTypesArraySize = GetEntPropArraySize(ent, Prop_Send, "m_nEndMatchMapGroupVoteTypes");
-		for (int x = 0; x < VoteOptionArraySize; x++) {
-			GameRules_SetProp("m_nEndMatchMapGroupVoteOptions", -1, _, x, true);
-		}
-		for (int x = 0; x < VoteTypesArraySize; x++) {
-			GameRules_SetProp("m_nEndMatchMapGroupVoteTypes", -1, _, x, true);
-		}
+	int ent = INVALID_ENT_REFERENCE;
+	if ((ent = FindEntityByClassname(ent, "cs_gamerules")) != INVALID_ENT_REFERENCE) {
+		RequestFrame(Frame_cs_win_panel_match, EntIndexToEntRef(ent));
+	}
+}
+
+void Frame_cs_win_panel_match(int ref) {
+	int ent = EntRefToEntIndex(ref);
+	if (ent == INVALID_ENT_REFERENCE) return;
+	int VoteOptionArraySize = GetEntPropArraySize(ent, Prop_Send, "m_nEndMatchMapGroupVoteOptions");
+	int VoteTypesArraySize = GetEntPropArraySize(ent, Prop_Send, "m_nEndMatchMapGroupVoteTypes");
+	for (int x = 0; x < VoteOptionArraySize; x++) {
+		GameRules_SetProp("m_nEndMatchMapGroupVoteOptions", -1, _, x, true);
+	}
+	for (int x = 0; x < VoteTypesArraySize; x++) {
+		GameRules_SetProp("m_nEndMatchMapGroupVoteTypes", -1, _, x, true);
 	}
 }
 
