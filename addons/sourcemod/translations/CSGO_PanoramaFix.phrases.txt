@@ -1,0 +1,53 @@
+"Phrases"
+{
+	"NoPanorama"
+	{
+		"en" 	"You are not using Panorama UI!"
+		"ja" 	"あなたPanorama UIを使用していません!"
+	}
+	"ScoreboardHud"
+	{
+		"en"	"[Panorama] More Info for Scoreboard"
+		"jp"	"[Panorama] More Info for Scoreboard (スコアボード拡張表示)"
+	}
+	"Off"
+	{
+		"en"	"Disabled"
+		"jp"	"無効"
+	}
+	"On"
+	{
+		"en"	"Enabled"
+		"jp"	"有効"
+	}
+	"OffMsg"
+	{
+		"en"	"Scoreboard More Info is now {lightgreen}Disabled{default}!"
+		"jp"	"スコアボード情報の拡張を {lightgreen}無効{default} にしました."
+	}
+	"OnMsg"
+	{
+		"en"	"Scoreboard More Info is now {lightgreen}Enabled{default}!"
+		"jp"	"スコアボード情報の拡張を {lightgreen}有効{default} にしました."
+	}
+	"Timeleft"
+	{
+		"en"	"Timeleft"
+		"jp"	"残り時間"
+	}
+	"CT Players Alive"
+	{
+		"en"	"CT Players Alive"
+		"jp"	"CT 生存プレイヤー"
+	}
+	"T Players Alive"
+	{
+		"en"	"T Players Alive"
+		"jp"	"T 生存プレイヤー"
+	}
+	"Spectators"
+	{
+		"en"	"Spectators"
+		"jp"	"人の観戦者"
+	}
+}
