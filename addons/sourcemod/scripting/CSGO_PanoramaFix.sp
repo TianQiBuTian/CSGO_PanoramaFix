@@ -24,6 +24,9 @@ bool g_bInScore[MAXPLAYERS+1] = {false, ...};
 bool g_bIsEnabled[MAXPLAYERS+1];
 Handle g_Scoreboard;
 
+/***** Team Menu Fix *****/
+Handle g_hClientTimer[MAXPLAYERS+1] = INVALID_HANDLE;
+
 bool g_bLateLoad = false;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max) {
@@ -53,6 +56,7 @@ public void OnPluginStart() {
 	/***** Team Menu Fix *****/
 	HookUserMessage(GetUserMessageId("VGUIMenu"), TeamMenuHook, true);
 	AddCommandListener(Command_JoinGame, "joingame");
+	AddCommandListener(Command_JoinTeam, "jointeam");
 
 	/***** endmatch_votenextmap Fix *****/
 	HookEvent("cs_win_panel_match", Event_cs_win_panel_match);
@@ -88,11 +92,15 @@ public void OnClientCookiesCached(int client) {
 public void OnClientConnected(int client) {
 	/***** Scoreboard Fix *****/
 	g_bInScore[client] = false;
+	/***** Team Menu Fix *****/
+	g_hClientTimer[client] = INVALID_HANDLE;
 }
 
 public void OnClientDisconnect(int client) {
 	/***** Scoreboard Fix *****/
 	g_bInScore[client] = false;
+	/***** Team Menu Fix *****/
+	g_hClientTimer[client] = INVALID_HANDLE;
 }
 
 public void OnClientPutInServer(int client) {
@@ -155,14 +163,24 @@ public Action TeamMenuHook(UserMsg msg_id, Protobuf msg, const int[] players, in
 public Action Command_JoinGame(int client, const char[] command, int argc) {
 	//PrintToServer("  - [Command_JoinGame] %N -> ShowVGUIPanel: \"team\"", client);
 	ShowVGUIPanel(client, "team");
-	CreateTimer(FindConVar("mp_force_pick_time").FloatValue, Timer_ForcePick, client, TIMER_FLAG_NO_MAPCHANGE);
+	g_hClientTimer[client] = CreateTimer(FindConVar("mp_force_pick_time").FloatValue, Timer_ForcePick, client, TIMER_FLAG_NO_MAPCHANGE);
+	return Plugin_Continue;
+}
+
+public Action Command_JoinTeam(int client, const char[] command, int argc) {
+	if (g_hClientTimer[client] != INVALID_HANDLE) {
+		KillTimer(g_hClientTimer[client]);
+		g_hClientTimer[client] = INVALID_HANDLE;
+	}
 	return Plugin_Continue;
 }
 
 public Action Timer_ForcePick(Handle timer, int client) {
+	if (!IsClientConnected(client)) return Plugin_Stop;
 	ClientCommand(client, "jointeam 3 1");
 	ShowVGUIPanel(client, "team", INVALID_HANDLE, false);
 	//PrintToServer("  - [Timer_ForcePick] %N -> ClientCommand: \"jointeam 3 1\"", client);
+	return Plugin_Continue;
 }
 
 //----------------------------------------------------------------------------------------------------
