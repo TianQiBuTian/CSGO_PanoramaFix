@@ -176,7 +176,10 @@ public Action Command_JoinTeam(int client, const char[] command, int argc) {
 }
 
 public Action Timer_ForcePick(Handle timer, int client) {
-	if (!IsClientConnected(client)) return Plugin_Stop;
+	if (!IsClientConnected(client) || !IsClientInGame(client)) {
+		g_hClientTimer[client] = INVALID_HANDLE;
+		return Plugin_Stop;
+	}
 	ShowVGUIPanel(client, "team", INVALID_HANDLE, false);
 	ClientCommand(client, "jointeam 3 1");
 	//PrintToServer("  - [Timer_ForcePick] %N -> ClientCommand: \"jointeam 3 1\"", client);
