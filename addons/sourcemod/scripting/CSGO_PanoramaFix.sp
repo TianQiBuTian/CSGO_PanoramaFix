@@ -59,7 +59,7 @@ public void OnPluginStart() {
 	AddCommandListener(Command_JoinTeam, "jointeam");
 
 	/***** endmatch_votenextmap Fix *****/
-	HookEvent("cs_win_panel_match", Event_cs_win_panel_match);
+	HookEvent("cs_win_panel_match", Event_cs_win_panel_match, EventHookMode_PostNoCopy);
 
 	SetCookieMenuItem(PrefMenu, 0, "[Panorama] More Info for Scoreboard");
 
@@ -131,6 +131,11 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 //----------------------------------------------------------------------------------------------------
 public void Event_cs_win_panel_match(Event event, const char[] name, bool dontBroadcast) {
 	if (FindConVar("mp_endmatch_votenextmap").BoolValue) return;
+	CreateTimer(1.0, Timer_cs_win_panel_match, _, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public Action Timer_cs_win_panel_match(Handle timer) {
+	//PrintToServer("  \x02-- [cs_win_panel_match] -> GameRules_SetProp");
 	for (int x = 0; x <= 9; x++) {
 		GameRules_SetProp("m_nEndMatchMapGroupVoteOptions", -1, _, x);
 		GameRules_SetProp("m_nEndMatchMapGroupVoteTypes", -1, _, x);
