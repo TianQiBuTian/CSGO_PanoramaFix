@@ -13,7 +13,7 @@ public Plugin myinfo = {
 	name = "Panorama Fix",
 	author = "SHUFEN from POSSESSION.tokyo",
 	description = "",
-	version = "0.1",
+	version = "1.0",
 	url = "https://possession.tokyo"
 }
 
@@ -29,6 +29,14 @@ Handle g_hClientTimer[MAXPLAYERS+1] = INVALID_HANDLE;
 
 bool g_bLateLoad = false;
 
+//----------------------------------------------------------------------------------------------------
+// Purpose: Module
+//----------------------------------------------------------------------------------------------------
+#include "CSGO_PanoramaFix/OverlayMOTD.sp"
+
+//----------------------------------------------------------------------------------------------------
+// Purpose: API
+//----------------------------------------------------------------------------------------------------
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max) {
 	if (GetEngineVersion() != Engine_CSGO) {
 		FormatEx(error, err_max, "The plugin only works on CS:GO");
@@ -43,6 +51,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
+//----------------------------------------------------------------------------------------------------
+// Purpose: General
+//----------------------------------------------------------------------------------------------------
 public void OnPluginStart() {
 	LoadTranslations("CSGO_PanoramaFix.phrases");
 
@@ -59,9 +70,11 @@ public void OnPluginStart() {
 	AddCommandListener(Command_JoinTeam, "jointeam");
 
 	/***** endmatch_votenextmap Fix *****/
-	HookEvent("cs_win_panel_match", Event_cs_win_panel_match, EventHookMode_PostNoCopy);
+	//HookEventEx("cs_win_panel_match", Event_cs_win_panel_match, EventHookMode_PostNoCopy);
 
 	SetCookieMenuItem(PrefMenu, 0, "[Panorama] More Info for Scoreboard");
+
+	OnPluginStart_OverlayMOTD();
 
 	if (g_bLateLoad) {
 		int i = 1;
@@ -87,6 +100,8 @@ public void OnClientCookiesCached(int client) {
 		strcopy(sValue, sizeof(sValue), "1");
 	}
 	g_bIsEnabled[client] = view_as<bool>(StringToInt(sValue));
+
+	OnClientCookiesCached_OverlayMOTD(client);
 }
 
 public void OnClientConnected(int client) {
@@ -94,6 +109,8 @@ public void OnClientConnected(int client) {
 	g_bInScore[client] = false;
 	/***** Team Menu Fix *****/
 	g_hClientTimer[client] = INVALID_HANDLE;
+
+	OnClientConnected_OverlayMOTD(client);
 }
 
 public void OnClientDisconnect(int client) {
@@ -101,6 +118,8 @@ public void OnClientDisconnect(int client) {
 	g_bInScore[client] = false;
 	/***** Team Menu Fix *****/
 	g_hClientTimer[client] = INVALID_HANDLE;
+
+	OnClientDisconnect_OverlayMOTD(client);
 }
 
 public void OnClientPutInServer(int client) {
@@ -112,6 +131,8 @@ public void OnClientPutInServer(int client) {
 
 public void OnClientPostAdminCheck(int client) {
 	PanoramaCheck(client);
+
+	OnClientPostAdminCheck_OverlayMOTD(client);
 }
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2]) {
@@ -129,7 +150,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 //----------------------------------------------------------------------------------------------------
 // Purpose: endmatch_votenextmap Fix
 //----------------------------------------------------------------------------------------------------
-public void Event_cs_win_panel_match(Event event, const char[] name, bool dontBroadcast) {
+/*public void Event_cs_win_panel_match(Event event, const char[] name, bool dontBroadcast) {
 	if (FindConVar("mp_endmatch_votenextmap").BoolValue) return;
 	CreateTimer(1.0, Timer_cs_win_panel_match, _, TIMER_FLAG_NO_MAPCHANGE);
 }
@@ -140,7 +161,7 @@ public Action Timer_cs_win_panel_match(Handle timer) {
 		GameRules_SetProp("m_nEndMatchMapGroupVoteOptions", -1, _, x);
 		GameRules_SetProp("m_nEndMatchMapGroupVoteTypes", -1, _, x);
 	}
-}
+}*/
 
 //----------------------------------------------------------------------------------------------------
 // Purpose: Team Menu Fix
@@ -167,15 +188,24 @@ public Action TeamMenuHook(UserMsg msg_id, Protobuf msg, const int[] players, in
 
 public Action Command_JoinGame(int client, const char[] command, int argc) {
 	//PrintToServer("  - [Command_JoinGame] %N -> ShowVGUIPanel: \"team\"", client);
+	if (g_bOverlayMOTDEnable && g_bOverlayMOTDState[client] && !IsClientShowingOverlayMOTD(client) && g_bDisabledHTMLMOTD[client]) {
+		g_bCalledJoinOverlayMOTD[client] = true;
+		ShowOverlayMOTD(client);
+		return Plugin_Handled;
+	}
 	ShowVGUIPanel(client, "team");
 	g_hClientTimer[client] = CreateTimer(FindConVar("mp_force_pick_time").FloatValue, Timer_ForcePick, client, TIMER_FLAG_NO_MAPCHANGE);
 	return Plugin_Continue;
 }
 
 public Action Command_JoinTeam(int client, const char[] command, int argc) {
+	//PrintToChat(client, "Command_JoinTeam");
 	if (g_hClientTimer[client] != INVALID_HANDLE) {
 		KillTimer(g_hClientTimer[client]);
 		g_hClientTimer[client] = INVALID_HANDLE;
+	}
+	if (g_bOverlayMOTDEnable && IsClientShowingOverlayMOTD(client)) {
+		StopOverlayMOTD(client);
 	}
 	return Plugin_Continue;
 }
@@ -201,22 +231,10 @@ public Action Timer_ScoreboardHUD(Handle timer, int caller) {
 
 	int specslist[MAXPLAYERS+1];
 	int specscount = 0;
-	int tcount = 0;
-	int talive = 0;
-	int ctcount = 0;
-	int ctalive = 0;
 
 	for (int i = 1; i <= MaxClients; i++) {
-		if (!IsClientConnected(i) || !IsClientInGame(i)) continue;
-		if (GetClientTeam(i) == CS_TEAM_T) {
-			tcount++;
-			if (IsPlayerAlive(i)) talive++;
-		}
-		if (GetClientTeam(i) == CS_TEAM_CT) {
-			ctcount++;
-			if (IsPlayerAlive(i)) ctalive++;
-		}
-		else if (GetClientTeam(i) == CS_TEAM_SPECTATOR) specslist[specscount++] = i;
+		if (!IsClientConnected(i) || !IsClientInGame(i) || GetClientTeam(i) != CS_TEAM_SPECTATOR) continue;
+		specslist[specscount++] = i;
 	}
 
 	char txt[255];
@@ -237,22 +255,25 @@ public Action Timer_ScoreboardHUD(Handle timer, int caller) {
 	}
 
 	for (int x = 0; x < specscount; x++) {
-		FormatEx(buffer, sizeof(buffer), "\n%N", specslist[x]);
+		Format(buffer, sizeof(buffer), "\n%N", specslist[x]);
 		StrCat(txt_specs, sizeof(txt_specs), buffer);
 	}
 
 	if (0 < caller <= MaxClients) {
+		bool bShow = false;
 		if (HasFlags(caller, "b")) {
+			bShow = true;
 			if (IsClientUsePanorama(caller)) {
-				FormatEx(txt, sizeof(txt), "%T %d:%02d\n%T %i/%i\n%T %i/%i\n\n%i %T:%s", "Timeleft", caller, mins, secs, "CT Players Alive", caller, ctalive, ctcount, "T Players Alive", caller, talive, tcount, specscount, "Spectators", caller, txt_specs);
+				Format(txt, sizeof(txt), "%T %d:%02d\n\n%i %T:%s", "Timeleft", caller, mins, secs, specscount, "Spectators", caller, txt_specs);
 			} else {
-				FormatEx(txt, sizeof(txt), "\n\n%i %T:%s", specscount, "Spectators", caller, txt_specs);
+				Format(txt, sizeof(txt), "\n\n%i %T:%s", specscount, "Spectators", caller, txt_specs);
 			}
 		} else if (IsClientUsePanorama(caller)) {
-			FormatEx(txt, sizeof(txt), "%T %d:%02d\n%T %i/%i\n%T %i/%i", "Timeleft", caller, mins, secs, "CT Players Alive", caller, ctalive, ctcount, "T Players Alive", caller, talive, tcount);
+			bShow = true;
+			Format(txt, sizeof(txt), "%T %d:%02d", "Timeleft", caller, mins, secs);
 		}
 
-		if (g_bIsEnabled[caller]) {
+		if (bShow && g_bIsEnabled[caller]) {
 			SetHudTextParamsEx(0.01, 0.37, 1.0, {255, 255, 255, 255}, {0, 0, 0, 255}, 0, 0.0, 0.0, 0.0);
 			ShowHudText(caller, 3, txt);
 		}
@@ -260,17 +281,20 @@ public Action Timer_ScoreboardHUD(Handle timer, int caller) {
 		for (int i = 1; i <= MaxClients; i++) {
 			if (!IsClientConnected(i) || !IsClientInGame(i)) continue;
 			if (g_bInScore[i]) {
+				bool bShow = false;
 				if (HasFlags(i, "b")) {
+					bShow = true;
 					if (IsClientUsePanorama(i)) {
-						FormatEx(txt, sizeof(txt), "%T %d:%02d\n%T %i/%i\n%T %i/%i\n\n%i %T:%s", "Timeleft", i, mins, secs, "CT Players Alive", i, ctalive, ctcount, "T Players Alive", i, talive, tcount, specscount, "Spectators", i, txt_specs);
+						Format(txt, sizeof(txt), "%T %d:%02d\n\n%i %T:%s", "Timeleft", i, mins, secs, specscount, "Spectators", i, txt_specs);
 					} else {
-						FormatEx(txt, sizeof(txt), "\n\n%i %T:%s", specscount, "Spectators", i, txt_specs);
+						Format(txt, sizeof(txt), "\n\n%i %T:%s", specscount, "Spectators", i, txt_specs);
 					}
 				} else if (IsClientUsePanorama(i)) {
-					FormatEx(txt, sizeof(txt), "%T %d:%02d\n%T %i/%i\n%T %i/%i", "Timeleft", i, mins, secs, "CT Players Alive", i, ctalive, ctcount, "T Players Alive", i, talive, tcount);
+					bShow = true;
+					Format(txt, sizeof(txt), "%T %d:%02d", "Timeleft", i, mins, secs);
 				}
 
-				if (g_bIsEnabled[i]) {
+				if (bShow && g_bIsEnabled[i]) {
 					SetHudTextParamsEx(0.01, 0.37, 1.0, {255, 255, 255, 255}, {0, 0, 0, 255}, 0, 0.0, 0.0, 0.0);
 					ShowHudText(i, 3, txt);
 				}
@@ -360,6 +384,11 @@ public void ClientConVar(QueryCookie cookie, int client, ConVarQueryResult resul
 		return;
 	} else {
 		g_bIsPanorama[client] = true;
+		if (g_bOverlayMOTDEnable && g_bOverlayMOTDState[client] && !IsClientShowingOverlayMOTD(client)) {
+			g_bCalledJoinOverlayMOTD[client] = true;
+			ShowOverlayMOTD(client);
+			return;
+		}
 		ChangeClientTeam(client, CS_TEAM_CT);
 		//PrintToServer("  - [QueryClientConVar] %N -> Force Team: 3", client);
 		return;
