@@ -4,50 +4,100 @@
 	{
 		"en" 	"You are not using Panorama UI!"
 		"ja" 	"あなたPanorama UIを使用していません!"
+		"chi"	"你当前未在使用全景UI中！"
+		"zho"	"你目前未在使用全景UI中！"
 	}
 	"ScoreboardHud"
 	{
 		"en"	"[Panorama] More Info for Scoreboard"
 		"jp"	"[Panorama] More Info for Scoreboard (スコアボード拡張表示)"
+		"chi"	"[全景UI] 更多计分板信息"
+		"zho"	"[全景UI] 更多記分板資訊"
 	}
-	"Off"
+	"Off" // SFUI_Settings_Disabled
 	{
 		"en"	"Disabled"
 		"jp"	"無効"
+		"chi"	"已禁用"
+		"zho"	"已停用"
+		"ko"	"해제"
+		"ru"	"Выкл."
 	}
-	"On"
+	"On" // SFUI_Settings_Enabled
 	{
 		"en"	"Enabled"
 		"jp"	"有効"
+		"chi"	"已启用"
+		"zho"	"已啟用"
+		"ko"	"사용"
+		"ru"	"Вкл."
 	}
 	"OffMsg"
 	{
 		"en"	"Scoreboard More Info is now {lightgreen}Disabled{default}!"
 		"jp"	"スコアボード情報の拡張を {lightgreen}無効{default} にしました."
+		"chi"	"更多计分板信息 当前{lightgreen}已禁用{default}！"
+		"zho"	"更多記分板資訊 目前{lightgreen}已停用{default}！"
 	}
 	"OnMsg"
 	{
 		"en"	"Scoreboard More Info is now {lightgreen}Enabled{default}!"
 		"jp"	"スコアボード情報の拡張を {lightgreen}有効{default} にしました."
+		"chi"	"更多计分板信息 当前{lightgreen}已启用{default}！"
+		"zho"	"更多記分板資訊 目前{lightgreen}已啟用{default}！"
 	}
-	"Timeleft"
+	"Roundsleft" // SFUI_Scoreboard_RoundsLeft
 	{
-		"en"	"Timeleft"
-		"jp"	"残り時間"
+		"en"	"Rounds Left: "
+		"jp"	"残りラウンド数："
+		"chi"	"剩余回合："
+		"zho"	"剩餘回合："
+		"ko"	"남은 라운드: "
+		"ru"	"Осталось раундов: "
 	}
-	"CT Players Alive"
+	"Timeleft" // SFUI_Scoreboard_TimeLeft
 	{
-		"en"	"CT Players Alive"
-		"jp"	"CT 生存プレイヤー"
+		"en"	"Time Left: "
+		"jp"	"残り時間: "
+		"chi"	"剩余时间："
+		"zho"	"剩餘時間："
+		"ko"	"남은 시간: "
+		"ru"	"Осталось: "
 	}
-	"T Players Alive"
+	"CT Players Alive" // SFUI_Scoreboard_Players
 	{
-		"en"	"T Players Alive"
-		"jp"	"T 生存プレイヤー"
+		"en"	"CT Players Alive: "
+		"jp"	"CT 生存プレイヤー："
+		"chi"	"CT 存活的玩家数："
+		"zho"	"CT 倖存玩家："
+		"ko"	"CT 남은 플레이어: "
+		"ru"	"CT Живых игроков: "
 	}
-	"Spectators"
+	"T Players Alive" // SFUI_Scoreboard_Players
+	{
+		"en"	"T Players Alive: "
+		"jp"	"T 生存プレイヤー："
+		"chi"	"T 存活的玩家数："
+		"zho"	"T 倖存玩家："
+		"ko"	"T 남은 플레이어: "
+		"ru"	"T Живых игроков: "
+	}
+	"Spectator" // SFUI_Scoreboard_Spectator
+	{
+		"en"	"Spectator"
+		"jp"	"観戦者"
+		"chi"	"名观察者"
+		"zho"	"位觀察者"
+		"ko"	"관전자"
+		"ru"	"НАБЛЮДАТЕЛЕЙ"
+	}
+	"Spectators" // SFUI_Scoreboard_Spectators
 	{
 		"en"	"Spectators"
-		"jp"	"人の観戦者"
+		"jp"	"観戦者"
+		"chi"	"名观察者"
+		"zho"	"位觀察者"
+		"ko"	"관전자"
+		"ru"	"НАБЛЮДАТЕЛЕЙ"
 	}
 }

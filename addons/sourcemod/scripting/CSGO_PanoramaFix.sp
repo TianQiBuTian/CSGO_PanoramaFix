@@ -24,6 +24,13 @@ bool g_bInScore[MAXPLAYERS+1] = {false, ...};
 bool g_bIsEnabled[MAXPLAYERS+1];
 Handle g_Scoreboard;
 
+ConVar mp_maxrounds;
+ConVar mp_overtime_maxrounds;
+bool g_overtime = false;
+bool g_first_half = true;
+int g_tscore = 0;
+int g_ctscore = 0;
+
 /***** Team Menu Fix *****/
 Handle g_hClientTimer[MAXPLAYERS+1] = INVALID_HANDLE;
 
@@ -63,6 +70,10 @@ public void OnPluginStart() {
 	CreateTimer(1.0, Timer_ScoreboardHUD, _, TIMER_REPEAT);
 	RegConsoleCmd("sm_moresb", Command_ToggleScoreboard);
 	g_Scoreboard = RegClientCookie("scoreboard_gametext_cookie", "Enable/Disable the scoreboard UI", CookieAccess_Protected);
+
+	mp_maxrounds = FindConVar("mp_maxrounds");
+	mp_overtime_maxrounds = FindConVar("mp_overtime_maxrounds");
+	HookEvent("round_end", Event_Round_End);
 
 	/***** Team Menu Fix *****/
 	HookUserMessage(GetUserMessageId("VGUIMenu"), TeamMenuHook, true);
@@ -254,6 +265,13 @@ public Action Timer_ScoreboardHUD(Handle timer, int caller) {
 		secs = timeleft % 60;
 	}
 
+	int roundleft;
+
+	if (!g_overtime)
+		roundleft = GetConVarInt(mp_maxrounds) - (g_tscore + g_ctscore);
+	else
+		roundleft = GetConVarInt(mp_overtime_maxrounds) - (g_tscore + g_ctscore);
+
 	for (int x = 0; x < specscount; x++) {
 		Format(buffer, sizeof(buffer), "\n%N", specslist[x]);
 		StrCat(txt_specs, sizeof(txt_specs), buffer);
@@ -264,13 +282,36 @@ public Action Timer_ScoreboardHUD(Handle timer, int caller) {
 		if (HasFlags(caller, "b")) {
 			bShow = true;
 			if (IsClientUsePanorama(caller)) {
-				Format(txt, sizeof(txt), "%T %d:%02d\n\n%i %T:%s", "Timeleft", caller, mins, secs, specscount, "Spectators", caller, txt_specs);
+				if (GetConVarInt(mp_maxrounds) != 0) {
+					if (specscount == 0)
+						Format(txt, sizeof(txt), "%T%d\n\n%i %T", "Roundsleft", caller, roundleft, specscount, "Spectator", caller);
+					else if (specscount == 1)
+						Format(txt, sizeof(txt), "%T%d\n\n%i %T:%s", "Roundsleft", caller, roundleft, specscount, "Spectator", caller, txt_specs);
+					else
+						Format(txt, sizeof(txt), "%T%d\n\n%i %T:%s", "Roundsleft", caller, roundleft, specscount, "Spectators", caller, txt_specs);
+				} else {
+					if (specscount == 0)
+						Format(txt, sizeof(txt), "%T%d:%02d\n\n%i %T", "Timeleft", caller, mins, secs, specscount, "Spectator", caller);
+					else if (specscount == 1)
+						Format(txt, sizeof(txt), "%T%d:%02d\n\n%i %T:%s", "Timeleft", caller, mins, secs, specscount, "Spectator", caller, txt_specs);
+					else
+						Format(txt, sizeof(txt), "%T%d:%02d\n\n%i %T:%s", "Timeleft", caller, mins, secs, specscount, "Spectators", caller, txt_specs);
+				}
 			} else {
-				Format(txt, sizeof(txt), "\n\n%i %T:%s", specscount, "Spectators", caller, txt_specs);
+				if (specscount == 0)
+					Format(txt, sizeof(txt), "\n\n%i %T", specscount, "Spectator", caller);
+				else if (specscount == 1)
+					Format(txt, sizeof(txt), "\n\n%i %T:%s", specscount, "Spectator", caller, txt_specs);
+				else
+					Format(txt, sizeof(txt), "\n\n%i %T:%s", specscount, "Spectators", caller, txt_specs);
 			}
 		} else if (IsClientUsePanorama(caller)) {
 			bShow = true;
-			Format(txt, sizeof(txt), "%T %d:%02d", "Timeleft", caller, mins, secs);
+			if (GetConVarInt(mp_maxrounds) != 0) {
+				Format(txt, sizeof(txt), "%T%d", "Roundsleft", caller, roundleft);
+			} else {
+				Format(txt, sizeof(txt), "%T%d:%02d", "Timeleft", caller, mins, secs);
+			}
 		}
 
 		if (bShow && g_bIsEnabled[caller]) {
@@ -285,13 +326,36 @@ public Action Timer_ScoreboardHUD(Handle timer, int caller) {
 				if (HasFlags(i, "b")) {
 					bShow = true;
 					if (IsClientUsePanorama(i)) {
-						Format(txt, sizeof(txt), "%T %d:%02d\n\n%i %T:%s", "Timeleft", i, mins, secs, specscount, "Spectators", i, txt_specs);
+						if (GetConVarInt(mp_maxrounds) != 0) {
+							if (specscount == 0)
+								Format(txt, sizeof(txt), "%T%d\n\n%i %T", "Roundsleft", i, roundleft, specscount, "Spectator", i);
+							else if (specscount == 1)
+								Format(txt, sizeof(txt), "%T%d\n\n%i %T:%s", "Roundsleft", i, roundleft, specscount, "Spectator", i, txt_specs);
+							else
+								Format(txt, sizeof(txt), "%T%d\n\n%i %T:%s", "Roundsleft", i, roundleft, specscount, "Spectators", i, txt_specs);
+						} else {
+						if (specscount == 0)
+							Format(txt, sizeof(txt), "%T%d:%02d\n\n%i %T", "Timeleft", i, mins, secs, specscount, "Spectator", i);
+						else if (specscount == 1)
+							Format(txt, sizeof(txt), "%T%d:%02d\n\n%i %T:%s", "Timeleft", i, mins, secs, specscount, "Spectator", i, txt_specs);
+						else
+							Format(txt, sizeof(txt), "%T%d:%02d\n\n%i %T:%s", "Timeleft", i, mins, secs, specscount, "Spectators", i, txt_specs);
+						}
 					} else {
-						Format(txt, sizeof(txt), "\n\n%i %T:%s", specscount, "Spectators", i, txt_specs);
+						if (specscount == 0)
+							Format(txt, sizeof(txt), "\n\n%i %T", specscount, "Spectator", i);
+						else if (specscount == 1)
+							Format(txt, sizeof(txt), "\n\n%i %T:%s", specscount, "Spectator", i, txt_specs);
+						else
+							Format(txt, sizeof(txt), "\n\n%i %T:%s", specscount, "Spectators", i, txt_specs);
 					}
 				} else if (IsClientUsePanorama(i)) {
 					bShow = true;
-					Format(txt, sizeof(txt), "%T %d:%02d", "Timeleft", i, mins, secs);
+					if (GetConVarInt(mp_maxrounds) != 0) {
+						Format(txt, sizeof(txt), "%T%d", "Roundsleft", i, roundleft);
+					} else {
+						Format(txt, sizeof(txt), "%T%d:%02d", "Timeleft", i, mins, secs);
+					}
 				}
 
 				if (bShow && g_bIsEnabled[i]) {
@@ -299,6 +363,42 @@ public Action Timer_ScoreboardHUD(Handle timer, int caller) {
 					ShowHudText(i, 3, txt);
 				}
 			}
+		}
+	}
+}
+
+public Action Event_Round_End(Handle event, const char[]name, bool dontBroadcast)
+{
+	int winner = GetEventInt(event, "winner");
+
+	if (g_first_half) {
+		if (winner == 2)
+			g_tscore += 1;
+		else if (winner == 3)
+			g_ctscore += 1;
+	} else {
+		if (winner == 2)
+			g_ctscore += 1;
+		else if (winner == 3)
+			g_tscore += 1;
+	}
+
+	if (!g_overtime) {
+		if (g_tscore + g_ctscore == (GetConVarInt(mp_maxrounds)/2))
+			g_first_half = false;
+		else if (g_tscore == (GetConVarInt(mp_maxrounds)/2) && g_ctscore == (GetConVarInt(mp_maxrounds)/2)) {
+			g_overtime = true;
+			g_first_half = true;
+			g_tscore = 0;
+			g_ctscore = 0;
+		}
+	} else {
+		if (g_tscore + g_ctscore == (GetConVarInt(mp_overtime_maxrounds)/2))
+			g_first_half = false;
+		else if (g_tscore == (GetConVarInt(mp_overtime_maxrounds)/2) && g_ctscore == (GetConVarInt(mp_overtime_maxrounds)/2)) {
+			g_first_half = true;
+			g_tscore = 0;
+			g_ctscore = 0;
 		}
 	}
 }
