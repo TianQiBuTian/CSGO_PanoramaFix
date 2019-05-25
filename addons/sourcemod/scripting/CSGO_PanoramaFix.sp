@@ -74,6 +74,7 @@ public void OnPluginStart() {
 	mp_maxrounds = FindConVar("mp_maxrounds");
 	mp_overtime_maxrounds = FindConVar("mp_overtime_maxrounds");
 	HookEvent("round_end", Event_Round_End);
+	HookConVarChange(FindConVar("mp_restartgame"), Event_Round_Restart);
 
 	/***** Team Menu Fix *****/
 	HookUserMessage(GetUserMessageId("VGUIMenu"), TeamMenuHook, true);
@@ -101,6 +102,14 @@ public void OnPluginStart() {
 			i++;
 		}
 	}
+}
+
+public void OnMapStart()
+{
+	g_overtime = false;
+	g_first_half = true;
+	g_tscore = 0;
+	g_ctscore = 0;
 }
 
 public void OnClientCookiesCached(int client) {
@@ -244,7 +253,7 @@ public Action Timer_ScoreboardHUD(Handle timer, int caller) {
 	int specscount = 0;
 
 	for (int i = 1; i <= MaxClients; i++) {
-		if (!IsClientConnected(i) || !IsClientInGame(i) || GetClientTeam(i) != CS_TEAM_SPECTATOR) continue;
+		if (!IsClientConnected(i) || !IsClientInGame(i) || GetClientTeam(i) > CS_TEAM_SPECTATOR || IsClientSourceTV(i) || IsClientReplay(i)) continue;
 		specslist[specscount++] = i;
 	}
 
@@ -369,18 +378,19 @@ public Action Timer_ScoreboardHUD(Handle timer, int caller) {
 
 public Action Event_Round_End(Handle event, const char[]name, bool dontBroadcast)
 {
+	if (InWarmup()) return;
 	int winner = GetEventInt(event, "winner");
 
 	if (g_first_half) {
-		if (winner == 2)
-			g_tscore += 1;
-		else if (winner == 3)
-			g_ctscore += 1;
+		if (winner == CS_TEAM_T)
+			g_tscore ++;
+		else if (winner == CS_TEAM_CT)
+			g_ctscore ++;
 	} else {
-		if (winner == 2)
-			g_ctscore += 1;
-		else if (winner == 3)
-			g_tscore += 1;
+		if (winner == CS_TEAM_T)
+			g_ctscore ++;
+		else if (winner == CS_TEAM_CT)
+			g_tscore ++;
 	}
 
 	if (!g_overtime) {
@@ -396,11 +406,21 @@ public Action Event_Round_End(Handle event, const char[]name, bool dontBroadcast
 		if (g_tscore + g_ctscore == (GetConVarInt(mp_overtime_maxrounds)/2))
 			g_first_half = false;
 		else if (g_tscore == (GetConVarInt(mp_overtime_maxrounds)/2) && g_ctscore == (GetConVarInt(mp_overtime_maxrounds)/2)) {
+			g_overtime = true;
 			g_first_half = true;
 			g_tscore = 0;
 			g_ctscore = 0;
 		}
 	}
+}
+
+public void Event_Round_Restart(Handle cvar, const char[]oldVal, const char[]newVal)
+{
+	if (!InRestart()) return;
+	g_overtime = false;
+	g_first_half = true;
+	g_tscore = 0;
+	g_ctscore = 0;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -571,4 +591,14 @@ stock bool HasFlags(int client, char[] sFlags) {
 			return true;
 	}
 	return false;
+}
+
+stock bool InWarmup()
+{
+	return GameRules_GetProp("m_bWarmupPeriod") != 0;
+}
+
+stock bool InRestart()
+{
+	return GameRules_GetProp("m_bGameRestart") != 0;
 }
